@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harvest Times</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet" />
+  <!-- marked.js for markdown parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --soil:       #2c1a0e;
+      --bark:       #5c3d1e;
+      --clay:       #a0522d;
+      --straw:      #d4a843;
+      --wheat:      #e8c97a;
+      --parchment:  #f5edd8;
+      --cream:      #faf6ed;
+      --sage:       #7a8c5e;
+      --moss:       #4a5e38;
+      --fog:        #9a9580;
+      --ink:        #1a1208;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--cream);
+      color: var(--soil);
+      font-family: 'Lora', Georgia, serif;
+      min-height: 100vh;
+    }
+
+    /* ── TEXTURE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background-color: var(--soil);
+      background-image: linear-gradient(135deg, var(--soil) 0%, #3d2410 100%);
+      border-bottom: 4px solid var(--straw);
+      padding: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--straw), var(--wheat), var(--straw), transparent);
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-eyebrow {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--straw);
+      opacity: 0.8;
+    }
+
+    .site-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2.8rem, 7vw, 5rem);
+      font-weight: 700;
+      color: var(--parchment);
+      letter-spacing: -0.01em;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .site-title span {
+      color: var(--straw);
+    }
+
+    .site-tagline {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 0.95rem;
+      color: var(--wheat);
+      opacity: 0.75;
+      text-align: center;
+    }
+
+    /* ── NAV BAR ── */
+    nav {
+      background-color: var(--bark);
+      border-bottom: 1px solid rgba(212, 168, 67, 0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .nav-link {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--wheat);
+      text-decoration: none;
+      padding: 14px 18px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: var(--straw);
+      border-bottom-color: var(--straw);
+    }
+
+    /* ── DATE BAR ── */
+    .date-bar {
+      background-color: var(--parchment);
+      border-bottom: 1px solid rgba(92, 61, 30, 0.15);
+      padding: 8px 24px;
+      text-align: center;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.78rem;
+      color: var(--fog);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── HERO SECTION ── */
+    #home-view { display: block; }
+    #article-view { display: none; }
+
+    .section-label {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--clay);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--clay), transparent);
+    }
+
+    /* ── FEATURED CARD ── */
+    .featured-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border: 1px solid rgba(92, 61, 30, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 48px;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(44, 26, 14, 0.1);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .featured-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(44, 26, 14, 0.18);
+    }
+
+    .featured-img {
+      width: 100%;
+      height: 380px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .featured-body {
+      padding: 40px 36px;
+      background: var(--parchment);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .article-category {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sage);
+    }
+
+    .featured-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--soil);
+    }
+
+    .featured-excerpt {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--bark);
+    }
+
+    .article-meta {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.8rem;
+      color: var(--fog);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .meta-dot { color: var(--straw); }
+
+    .read-more {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--clay);
+      margin-top: 8px;
+    }
+
+    .read-more::after {
+      content: '→';
+      transition: transform 0.2s;
+    }
+
+    .featured-card:hover .read-more::after {
+      transform: translateX(4px);
+    }
+
+    /* ── ARTICLE GRID ── */
+    .grid-label { margin-top: 16px; }
+
+    .article-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 28px;
+    }
+
+    .article-card {
+      background: var(--parchment);
+      border: 1px solid rgba(92, 61, 30, 0.15);
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .article-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 32px rgba(44, 26, 14, 0.14);
+    }
+
+    .card-img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-body {
+      padding: 22px 22px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--soil);
+    }
+
+    .card-excerpt {
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--bark);
+      flex: 1;
+    }
+
+    /* ── ARTICLE VIEW ── */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--clay);
+      cursor: pointer;
+      margin-bottom: 36px;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    .back-btn::before { content: '←'; }
+    .back-btn:hover { color: var(--bark); }
+
+    .article-hero-img {
+      width: 100%;
+      max-height: 440px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 40px;
+      display: block;
+    }
+
+    .article-header { margin-bottom: 36px; }
+
+    .article-header .article-category { margin-bottom: 12px; display: block; }
+
+    .article-full-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--soil);
+      margin-bottom: 16px;
+    }
+
+    .article-full-excerpt {
+      font-size: 1.08rem;
+      font-style: italic;
+      color: var(--bark);
+      line-height: 1.7;
+      margin-bottom: 16px;
+      border-left: 3px solid var(--straw);
+      padding-left: 18px;
+    }
+
+    .article-body {
+      max-width: 680px;
+      font-size: 1.05rem;
+      line-height: 1.85;
+      color: var(--soil);
+    }
+
+    .article-body h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--soil);
+      margin: 2em 0 0.6em;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(92,61,30,0.15);
+    }
+
+    .article-body h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      color: var(--bark);
+      margin: 1.6em 0 0.5em;
+    }
+
+    .article-body p { margin-bottom: 1.2em; }
+
+    .article-body ul, .article-body ol {
+      margin: 0.8em 0 1.4em 1.4em;
+    }
+
+    .article-body li { margin-bottom: 0.5em; }
+
+    .article-body strong { color: var(--bark); font-weight: 600; }
+
+    .article-body em { color: var(--clay); }
+
+    .article-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5em 0;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.9rem;
+    }
+
+    .article-body th {
+      background: var(--bark);
+      color: var(--parchment);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .article-body td {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(92,61,30,0.12);
+    }
+
+    .article-body tr:nth-child(even) td {
+      background: rgba(212, 168, 67, 0.07);
+    }
+
+    .article-body hr {
+      border: none;
+      border-top: 1px solid rgba(92,61,30,0.15);
+      margin: 2em 0;
+    }
+
+    .article-body blockquote, .article-body p:has(em:only-child) {
+      font-style: italic;
+      color: var(--fog);
+      font-size: 0.9rem;
+      margin-top: 1em;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background-color: var(--soil);
+      border-top: 3px solid var(--straw);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .footer-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--wheat);
+      margin-bottom: 8px;
+    }
+
+    .footer-sub {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.8rem;
+      color: var(--fog);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── LOADING ── */
+    .loading {
+      text-align: center;
+      padding: 80px;
+      font-family: 'Source Sans 3', sans-serif;
+      color: var(--fog);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      .featured-card { grid-template-columns: 1fr; }
+      .featured-img { height: 220px; }
+      .featured-body { padding: 24px 20px; }
+      .article-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .featured-card, .article-card {
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .article-card:nth-child(2) { animation-delay: 0.08s; }
+    .article-card:nth-child(3) { animation-delay: 0.16s; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <span class="header-eyebrow">Independent Agricultural Journalism</span>
+      <h1 class="site-title">Harvest <span>Times</span></h1>
+      <p class="site-tagline">From the soil up — news, insight, and seasonal wisdom for those who grow.</p>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-link active" onclick="showHome()">All Stories</a>
+      <a class="nav-link" onclick="filterCategory('Seasonal Guide')">Seasonal</a>
+      <a class="nav-link" onclick="filterCategory('Market Watch')">Markets</a>
+      <a class="nav-link" onclick="filterCategory('Ecology')">Ecology</a>
+    </div>
+  </nav>
+
+  <!-- DATE BAR -->
+  <div class="date-bar" id="datebar"></div>
+
+  <!-- MAIN -->
+  <main>
+    <!-- HOME VIEW -->
+    <div id="home-view">
+      <div id="featured-section"></div>
+      <div class="section-label grid-label">More Stories</div>
+      <div class="article-grid" id="article-grid"></div>
+    </div>
+
+    <!-- ARTICLE VIEW -->
+    <div id="article-view">
+      <button class="back-btn" onclick="showHome()">Back to all stories</button>
+      <div id="article-content"></div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-title">Harvest Times</div>
+    <p class="footer-sub">© 2026 · Published on GitHub Pages · All rights reserved</p>
+  </footer>
+
+  <script>
+    // ── DATE BAR ──
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const now = new Date();
+    document.getElementById('datebar').textContent =
+      `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+
+    // ── STATE ──
+    let allArticles = [];
+    let currentFilter = null;
+
+    // ── FORMAT DATE ──
+    function formatDate(str) {
+      const d = new Date(str + 'T00:00:00');
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+
+    // ── LOAD ARTICLES LIST ──
+    async function loadArticles() {
+      const res = await fetch('articles.json');
+      allArticles = await res.json();
+      renderHome(allArticles);
+    }
+
+    // ── RENDER HOME ──
+    function renderHome(articles) {
+      const featured = articles[0];
+      const rest = articles.slice(1);
+
+      // Featured
+      const fs = document.getElementById('featured-section');
+      if (featured) {
+        fs.innerHTML = `
+          <div class="section-label">Featured Story</div>
+          <div class="featured-card" onclick="openArticle('${featured.file}', ${JSON.stringify(featured).replace(/"/g,'&quot;')})">
+            <img class="featured-img" src="${featured.image}" alt="${featured.title}" loading="lazy" />
+            <div class="featured-body">
+              <span class="article-category">${featured.category}</span>
+              <h2 class="featured-title">${featured.title}</h2>
+              <p class="featured-excerpt">${featured.excerpt}</p>
+              <div class="article-meta">
+                <span>${featured.author}</span>
+                <span class="meta-dot">·</span>
+                <span>${formatDate(featured.date)}</span>
+              </div>
+              <span class="read-more">Read Story</span>
+            </div>
+          </div>`;
+      } else {
+        fs.innerHTML = '';
+      }
+
+      // Grid
+      const grid = document.getElementById('article-grid');
+      grid.innerHTML = rest.map(a => `
+        <div class="article-card" onclick="openArticle('${a.file}', ${JSON.stringify(a).replace(/"/g,'&quot;')})">
+          <img class="card-img" src="${a.image}" alt="${a.title}" loading="lazy" />
+          <div class="card-body">
+            <span class="article-category">${a.category}</span>
+            <h3 class="card-title">${a.title}</h3>
+            <p class="card-excerpt">${a.excerpt}</p>
+            <div class="article-meta">
+              <span>${a.author}</span>
+              <span class="meta-dot">·</span>
+              <span>${formatDate(a.date)}</span>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    // ── OPEN ARTICLE ──
+    async function openArticle(file, meta) {
+      document.getElementById('home-view').style.display = 'none';
+      document.getElementById('article-view').style.display = 'block';
+      document.getElementById('article-content').innerHTML = '<div class="loading">Loading…</div>';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      const res = await fetch(file);
+      let text = await res.text();
+
+      // Strip front matter
+      text = text.replace(/^---[\s\S]*?---\n?/, '');
+
+      const html = marked.parse(text);
+      document.getElementById('article-content').innerHTML = `
+        <img class="article-hero-img" src="${meta.image}" alt="${meta.title}" />
+        <div class="article-header">
+          <span class="article-category">${meta.category}</span>
+          <h1 class="article-full-title">${meta.title}</h1>
+          <p class="article-full-excerpt">${meta.excerpt}</p>
+          <div class="article-meta">
+            <span>${meta.author}</span>
+            <span class="meta-dot">·</span>
+            <span>${formatDate(meta.date)}</span>
+          </div>
+        </div>
+        <div class="article-body">${html}</div>`;
+    }
+
+    // ── SHOW HOME ──
+    function showHome() {
+      document.getElementById('home-view').style.display = 'block';
+      document.getElementById('article-view').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Reset nav
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.nav-link')[0].classList.add('active');
+      renderHome(allArticles);
+    }
+
+    // ── FILTER CATEGORY ──
+    function filterCategory(cat) {
+      document.getElementById('home-view').style.display = 'block';
+      document.getElementById('article-view').style.display = 'none';
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      const filtered = allArticles.filter(a => a.category === cat);
+      renderHome(filtered);
+    }
+
+    // ── INIT ──
+    loadArticles();
+  </script>
+</body>
+</html>

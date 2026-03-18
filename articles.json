@@ -1,0 +1,29 @@
+[
+  {
+    "file": "articles/2026-03-18-spring-planting-guide.md",
+    "title": "Spring Planting Guide 2026 — What to Sow and When",
+    "date": "2026-03-18",
+    "author": "Elena Papadopoulos",
+    "category": "Seasonal Guide",
+    "excerpt": "As soil temperatures rise across the Mediterranean, farmers are facing a pivotal window. Here's what agronomists are recommending for this season.",
+    "image": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80"
+  },
+  {
+    "file": "articles/2026-03-10-olive-oil-prices.md",
+    "title": "Olive Oil Prices Climb as Mediterranean Harvests Fall Short",
+    "date": "2026-03-10",
+    "author": "Marco Ferretti",
+    "category": "Market Watch",
+    "excerpt": "A second consecutive difficult harvest season has pushed extra virgin olive oil prices to record highs. Producers are adapting — but consumers are feeling the squeeze.",
+    "image": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&q=80"
+  },
+  {
+    "file": "articles/2026-03-05-bee-recovery.md",
+    "title": "The Bees Are Back — And Farmers Are Paying Attention",
+    "date": "2026-03-05",
+    "author": "Sofia Andreou",
+    "category": "Ecology",
+    "excerpt": "Pollinator populations are showing signs of partial recovery in several European regions. Regenerative farming practices may be playing a bigger role than previously thought.",
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80"
+  }
+]
