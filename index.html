@@ -338,6 +338,16 @@
       flex: 1;
     }
 
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      font-family: 'Source Sans 3', sans-serif;
+      color: var(--fog);
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+    }
+
     /* ── ARTICLE VIEW ── */
     .back-btn {
       display: inline-flex;
@@ -458,11 +468,38 @@
       margin: 2em 0;
     }
 
-    .article-body blockquote, .article-body p:has(em:only-child) {
+    .article-body blockquote {
       font-style: italic;
       color: var(--fog);
       font-size: 0.9rem;
       margin-top: 1em;
+    }
+
+    /* ── ERROR STATE ── */
+    .error-state {
+      background: rgba(160, 82, 45, 0.08);
+      border: 1px solid rgba(160, 82, 45, 0.25);
+      border-radius: 4px;
+      padding: 28px 32px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.9rem;
+      color: var(--clay);
+      line-height: 1.6;
+    }
+
+    .error-state strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--bark);
+    }
+
+    .error-state code {
+      background: rgba(92, 61, 30, 0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.85rem;
     }
 
     /* ── FOOTER ── */
@@ -536,6 +573,7 @@
       <a class="nav-link" onclick="filterCategory('Seasonal Guide')">Seasonal</a>
       <a class="nav-link" onclick="filterCategory('Market Watch')">Markets</a>
       <a class="nav-link" onclick="filterCategory('Ecology')">Ecology</a>
+      <a class="nav-link" onclick="filterCategory('Trade & Agriculture')">Trade</a>
     </div>
   </nav>
 
@@ -574,7 +612,6 @@
 
     // ── STATE ──
     let allArticles = [];
-    let currentFilter = null;
 
     // ── FORMAT DATE ──
     function formatDate(str) {
@@ -584,9 +621,15 @@
 
     // ── LOAD ARTICLES LIST ──
     async function loadArticles() {
-      const res = await fetch('articles.json');
-      allArticles = await res.json();
-      renderHome(allArticles);
+      try {
+        const res = await fetch('articles.json');
+        if (!res.ok) throw new Error(`articles.json not found (status ${res.status})`);
+        allArticles = await res.json();
+        renderHome(allArticles);
+      } catch (err) {
+        document.getElementById('featured-section').innerHTML =
+          `<div class="error-state"><strong>Could not load articles.json</strong>${err.message}</div>`;
+      }
     }
 
     // ── RENDER HOME ──
@@ -619,6 +662,10 @@
 
       // Grid
       const grid = document.getElementById('article-grid');
+      if (rest.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No more stories in this category.</div>';
+        return;
+      }
       grid.innerHTML = rest.map(a => `
         <div class="article-card" onclick="openArticle('${a.file}', ${JSON.stringify(a).replace(/"/g,'&quot;')})">
           <img class="card-img" src="${a.image}" alt="${a.title}" loading="lazy" />
@@ -642,26 +689,37 @@
       document.getElementById('article-content').innerHTML = '<div class="loading">Loading…</div>';
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      const res = await fetch(file);
-      let text = await res.text();
+      try {
+        const res = await fetch(file);
+        if (!res.ok) throw new Error(`File not found: <code>${file}</code> (HTTP ${res.status}). Check that the filename in articles.json matches exactly — including capitalisation.`);
 
-      // Strip front matter
-      text = text.replace(/^---[\s\S]*?---\n?/, '');
+        let text = await res.text();
 
-      const html = marked.parse(text);
-      document.getElementById('article-content').innerHTML = `
-        <img class="article-hero-img" src="${meta.image}" alt="${meta.title}" />
-        <div class="article-header">
-          <span class="article-category">${meta.category}</span>
-          <h1 class="article-full-title">${meta.title}</h1>
-          <p class="article-full-excerpt">${meta.excerpt}</p>
-          <div class="article-meta">
-            <span>${meta.author}</span>
-            <span class="meta-dot">·</span>
-            <span>${formatDate(meta.date)}</span>
+        // Strip YAML front matter
+        text = text.replace(/^---[\s\S]*?---\n?/, '');
+
+        const html = marked.parse(text);
+        document.getElementById('article-content').innerHTML = `
+          <img class="article-hero-img" src="${meta.image}" alt="${meta.title}" />
+          <div class="article-header">
+            <span class="article-category">${meta.category}</span>
+            <h1 class="article-full-title">${meta.title}</h1>
+            <p class="article-full-excerpt">${meta.excerpt}</p>
+            <div class="article-meta">
+              <span>${meta.author}</span>
+              <span class="meta-dot">·</span>
+              <span>${formatDate(meta.date)}</span>
+            </div>
           </div>
-        </div>
-        <div class="article-body">${html}</div>`;
+          <div class="article-body">${html}</div>`;
+
+      } catch (err) {
+        document.getElementById('article-content').innerHTML = `
+          <div class="error-state">
+            <strong>Could not load this article</strong>
+            ${err.message}
+          </div>`;
+      }
     }
 
     // ── SHOW HOME ──
@@ -669,7 +727,6 @@
       document.getElementById('home-view').style.display = 'block';
       document.getElementById('article-view').style.display = 'none';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // Reset nav
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       document.querySelectorAll('.nav-link')[0].classList.add('active');
       renderHome(allArticles);
@@ -681,7 +738,7 @@
       document.getElementById('article-view').style.display = 'none';
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       const filtered = allArticles.filter(a => a.category === cat);
-      renderHome(filtered);
+      renderHome(filtered.length ? filtered : []);
     }
 
     // ── INIT ──
